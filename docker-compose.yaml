@@ -1,0 +1,136 @@
+version: "3.8"
+#https://github.com/compose-spec/compose-spec/blob/master/spec.md#using-extensions-as-fragments
+x-logging: &default-logging
+  options:
+    max-size: "100m"
+    max-file: "5"
+  driver: json-file
+services:
+  # hook in case we need to add init behavior
+  # every root service (no depends_on) should depend on init
+  init:
+    image: lineblocs/init:${VERSION}
+    logging: *default-logging
+    container_name: init
+    command: /bin/sh -c "./scripts/configure_env_for_deployments.sh"
+    environment:
+      - LOCAL_ROOT=${LOCAL_ROOT}
+      - HACK_LOCAL_ROOT_PARENT=${HACK_LOCAL_ROOT_PARENT}
+  user_app:
+    image: lineblocs/user-app:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-app
+    environment:
+      - LINEBLOCS_VERSION=${VERSION}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+    networks:
+      - lineblocs_internal
+    depends_on:
+      init:
+        condition: service_completed_successfully
+  site:
+    image: lineblocs/site:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-site
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${CONFIG_DB_HOST:-}
+      - DB_USERNAME=${CONFIG_DB_USERNAME:-}
+      - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
+      - DB_NAME=${CONFIG_DB_NAME:-}
+      - DB_OPENSIPS_DATABASE=${CONFIG_DB_OPENSIPS_DATABASE:-}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+    #volumes:
+    #  - db:/var/lib/postgresql/data
+    networks:
+      - lineblocs_internal
+  ts_bindings:
+    image: lineblocs/ts-bindings:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-worker
+    restart: unless-stopped
+    environment:
+      - LINEBLOCS_VERSION=${VERSION}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+    ports:
+      - 8080
+    networks:
+      - lineblocs_internal
+    depends_on:
+      init:
+        condition: service_completed_successfully
+  editor: 
+    image: lineblocs/flow-designer:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-server
+    restart: unless-stopped
+    environment:
+      - LINEBLOCS_VERSION=${VERSION}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+    ports:
+      - 8002:80
+    networks:
+      - lineblocs_internal
+    depends_on:
+      init:
+        condition: service_completed_successfully
+  routeeditor:
+    image: lineblocs/call-route-editor:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-routeeditor
+    restart: unless-stopped
+    ports:
+      - 80
+    environment:
+      - LINEBLOCS_VERSION=${VERSION}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+    networks:
+      - lineblocs_internal
+    depends_on:
+      init:
+        condition: service_completed_successfully
+  internals_api:
+    image: lineblocs/internals-api:${VERSION}
+    logging: *default-logging
+    container_name: internals-api
+    restart: unless-stopped
+    environment:
+      - LINEBLOCS_VERSION=${VERSION}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+      - DB_HOST=${CONFIG_DB_HOST:-}
+      - DB_USER=${CONFIG_DB_USERNAME:-}
+      - DB_PASS=${CONFIG_DB_PASSWORD:-}
+      - DB_NAME=${CONFIG_DB_NAME:-}
+      - DB_OPENSIPS_DATABASE=${CONFIG_DB_OPENSIPS_DATABASE:-}
+      - USE_DOTENV=off
+      - USE_TLS=off
+      - USE_LIMIT_MIDDLEWARE=off
+    networks:
+      - lineblocs_internal
+  phpmyadmin:
+    image: lineblocs/internals-api:${VERSION}
+    logging: *default-logging
+    container_name: internals-api
+    restart: unless-stopped
+    environment:
+      - LINEBLOCS_VERSION=${VERSION}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+      - PMA_HOST=${CONFIG_DB_HOST:-}
+      - PMA_PORT=${CONFIG_DB_PORT:-}
+      - MYSQL_ROOT_PASSWORD=${CONFIG_DB_ROOT_PASSWORD:-}
+    networks:
+      - lineblocs_internal
+
+volumes:
+  workspace:
+    name: ${WORKSPACE_DOCKER_MOUNT}
+  # the data volume is only needed for backward compatibility; when users upgrade
+  # from an old Airbyte version that relies on file-based configs, the server needs
+  # to read this volume to copy their configs to the database
+  data:
+    name: ${DATA_DOCKER_MOUNT}
+  db:
+    name: ${DB_DOCKER_MOUNT}
+networks:
+  lineblocs_public:
+  lineblocs_internal:
