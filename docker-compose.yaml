@@ -11,7 +11,7 @@ services:
   init:
     image: lineblocs/init:${VERSION}
     logging: *default-logging
-    container_name: init
+    container_name: lineblocs-init
     command: /bin/sh -c "./scripts/configure_env_for_deployments.sh"
     environment:
       - LOCAL_ROOT=${LOCAL_ROOT}
@@ -47,7 +47,7 @@ services:
   ts_bindings:
     image: lineblocs/ts-bindings:${VERSION}
     logging: *default-logging
-    container_name: lineblocs-worker
+    container_name: lineblocs-ts-bindings
     restart: unless-stopped
     environment:
       - LINEBLOCS_VERSION=${VERSION}
@@ -62,7 +62,7 @@ services:
   editor: 
     image: lineblocs/flow-designer:${VERSION}
     logging: *default-logging
-    container_name: lineblocs-server
+    container_name: lineblocs-editor
     restart: unless-stopped
     environment:
       - LINEBLOCS_VERSION=${VERSION}
@@ -77,7 +77,7 @@ services:
   route_editor:
     image: lineblocs/call-route-editor:${VERSION}
     logging: *default-logging
-    container_name: lineblocs-routeeditor
+    container_name: lineblocs-route-editor
     restart: unless-stopped
     ports:
       - 80
@@ -92,7 +92,7 @@ services:
   internals_api:
     image: lineblocs/internals-api:${VERSION}
     logging: *default-logging
-    container_name: internals-api
+    container_name: lineblocs-internals-api
     restart: unless-stopped
     environment:
       - LINEBLOCS_VERSION=${VERSION}
@@ -110,7 +110,7 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     logging: *default-logging
-    container_name: phpmyadmin
+    container_name: lineblocs-phpmyadmin
     restart: unless-stopped
     environment:
       - PMA_HOST=${CONFIG_DB_HOST:-}
@@ -118,7 +118,81 @@ services:
       - MYSQL_ROOT_PASSWORD=${CONFIG_DB_ROOT_PASSWORD:-}
     networks:
       - lineblocs_internal
-
+  # start of voip definitions
+  opensips:
+    image: lineblocs/opensips-proxy:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-opensips
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${CONFIG_DB_HOST:-}
+      - DB_USERNAME=${CONFIG_DB_USERNAME:-}
+      - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
+      - DB_NAME=${CONFIG_DB_NAME:-}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+      - RTPPROXY_IPV4=${DEPLOYMENT_DOMAIN}
+      - LINEBLOCS_KEY=${LINEBLOCS_KEY}
+    networks:
+      - lineblocs_voip
+  asterisk:
+    image: lineblocs/asterisk:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-asterisk
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${CONFIG_DB_HOST:-}
+      - DB_USERNAME=${CONFIG_DB_USERNAME:-}
+      - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
+      - DB_NAME=${CONFIG_DB_NAME:-}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+      - AMI_USER=${AMI_USER}
+      - AMI_PORT=${AMI_PORT}
+      - AMI_HOST=${AMI_HOST}
+      - ARI_USERNAME=${ARI_USERNAME}
+      - ARI_PASSWORD=${ARI_PASSWORD}
+      - LINEBLOCS_KEY=${LINEBLOCS_KEY}
+    networks:
+      - lineblocs_voip
+  ari_apps:
+    image: lineblocs/ari-apps:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-ari-apps
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${CONFIG_DB_HOST:-}
+      - DB_USERNAME=${CONFIG_DB_USERNAME:-}
+      - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
+      - DB_NAME=${CONFIG_DB_NAME:-}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+      - ARI_HOST=${ARI_HOST}
+      - ARI_PORT=${ARI_PORT}
+      - ARI_USERNAME=${ARI_USERNAME}
+      - ARI_PASSWORD=${ARI_PASSWORD}
+      - ARI_USE_PROXY=${ARI_USE_PROXY}
+      - LINEBLOCS_KEY=${LINEBLOCS_KEY}
+      - LOG_LEVEL=${ARI_LOG_LEVEL}
+    networks:
+      - lineblocs_voip
+  mngrs:
+    image: lineblocs/mngrs:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-mngrs
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${CONFIG_DB_HOST:-}
+      - DB_USERNAME=${CONFIG_DB_USERNAME:-}
+      - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
+      - DB_NAME=${CONFIG_DB_NAME:-}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+      - ARI_HOST=${ARI_HOST}
+      - ARI_PORT=${ARI_PORT}
+      - ARI_USERNAME=${ARI_USERNAME}
+      - ARI_PASSWORD=${ARI_PASSWORD}
+      - ARI_USE_PROXY=${ARI_USE_PROXY}
+      - LINEBLOCS_KEY=${LINEBLOCS_KEY}
+      - LOG_LEVEL=${ARI_LOG_LEVEL}
+    networks:
+      - lineblocs_voip
 volumes:
   workspace:
     name: ${WORKSPACE_DOCKER_MOUNT}
@@ -132,3 +206,4 @@ volumes:
 networks:
   lineblocs_public:
   lineblocs_internal:
+  lineblocs_voip:
