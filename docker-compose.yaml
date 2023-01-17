@@ -74,7 +74,7 @@ services:
     depends_on:
       init:
         condition: service_completed_successfully
-  routeeditor:
+  route_editor:
     image: lineblocs/call-route-editor:${VERSION}
     logging: *default-logging
     container_name: lineblocs-routeeditor
