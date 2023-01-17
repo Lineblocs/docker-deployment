@@ -108,13 +108,11 @@ services:
     networks:
       - lineblocs_internal
   phpmyadmin:
-    image: lineblocs/internals-api:${VERSION}
+    image: phpmyadmin/phpmyadmin:latest
     logging: *default-logging
-    container_name: internals-api
+    container_name: phpmyadmin
     restart: unless-stopped
     environment:
-      - LINEBLOCS_VERSION=${VERSION}
-      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
       - PMA_HOST=${CONFIG_DB_HOST:-}
       - PMA_PORT=${CONFIG_DB_PORT:-}
       - MYSQL_ROOT_PASSWORD=${CONFIG_DB_ROOT_PASSWORD:-}
