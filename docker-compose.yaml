@@ -173,10 +173,10 @@ services:
       - LOG_LEVEL=${ARI_LOG_LEVEL}
     networks:
       - lineblocs_voip
-  mngrs:
-    image: lineblocs/mngrs:${VERSION}
+  recordings_mngrs:
+    image: lineblocs/recordings-mngr:${VERSION}
     logging: *default-logging
-    container_name: lineblocs-mngrs
+    container_name: lineblocs-recordings-mngrs
     restart: unless-stopped
     environment:
       - DB_HOST=${CONFIG_DB_HOST:-}
