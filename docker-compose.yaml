@@ -19,7 +19,7 @@ services:
   nginx-proxy:
     image: jwilder/nginx-proxy
     ports:
-      - "80:80"
+      - "8018:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     environment:
@@ -198,8 +198,8 @@ services:
     restart: unless-stopped
     environment:
       - DB_HOST=${CONFIG_DB_HOST:-}
-      - DB_USERNAME=${CONFIG_DB_USERNAME:-}
-      - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
+      - DB_USER=${CONFIG_DB_USER:-}
+      - DB_PASS=${CONFIG_DB_PASSWORD:-}
       - DB_NAME=${CONFIG_DB_NAME:-}
       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
       - ARI_HOST=${ARI_HOST}
