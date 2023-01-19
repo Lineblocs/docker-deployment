@@ -19,7 +19,7 @@ services:
   nginx-proxy:
     image: jwilder/nginx-proxy
     ports:
-      - "8018:80"
+      - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
     environment:
@@ -112,7 +112,7 @@ services:
       - VIRTUAL_HOST=internals.${DEPLOYMENT_DOMAIN}
       - VIRTUAL_PORT=8010
       - DB_HOST=${CONFIG_DB_HOST:-}
-      - DB_USER=${CONFIG_DB_USERNAME:-}
+      - DB_USER=${CONFIG_DB_USER:-}
       - DB_PASS=${CONFIG_DB_PASSWORD:-}
       - DB_NAME=${CONFIG_DB_NAME:-}
       - DB_OPENSIPS_DATABASE=${CONFIG_DB_OPENSIPS_DATABASE:-}
@@ -143,14 +143,14 @@ services:
     restart: unless-stopped
     environment:
       - DB_HOST=${CONFIG_DB_HOST:-}
-      - DB_USERNAME=${CONFIG_DB_USERNAME:-}
+      - DB_USER=${CONFIG_DB_USERNAME:-}
       - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
-      - DB_NAME=${CONFIG_DB_NAME:-}
+      - DB_NAME=${CONFIG_DB_OPENSIPS_DATABASE:-}
       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
-      - RTPPROXY_IPV4=${DEPLOYMENT_DOMAIN}
+      - HTTP_SCHEME=${API_HTTP_SCHEME}
+      - RTPPROXY_IPV4=${RTPPROXY_IPV4}
       - LINEBLOCS_KEY=${LINEBLOCS_KEY}
-    networks:
-      - lineblocs_voip
+    network_mode: "host"
   asterisk:
     image: lineblocs/asterisk:${VERSION}
     logging: *default-logging
@@ -163,13 +163,13 @@ services:
       - DB_NAME=${CONFIG_DB_NAME:-}
       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
       - AMI_USER=${AMI_USER}
+      - AMI_PASS=${AMI_PASS}
       - AMI_PORT=${AMI_PORT}
       - AMI_HOST=${AMI_HOST}
       - ARI_USERNAME=${ARI_USERNAME}
       - ARI_PASSWORD=${ARI_PASSWORD}
       - LINEBLOCS_KEY=${LINEBLOCS_KEY}
-    networks:
-      - lineblocs_voip
+    network_mode: "host"
   ari_apps:
     image: lineblocs/ari-apps:${VERSION}
     logging: *default-logging
@@ -186,10 +186,11 @@ services:
       - ARI_USERNAME=${ARI_USERNAME}
       - ARI_PASSWORD=${ARI_PASSWORD}
       - ARI_USE_PROXY=${ARI_USE_PROXY}
+      - ARI_URL=http://${ARI_HOST}:8088/ari
+      - ARI_WSURL=ws://${ARI_HOST}:8088/ari/events
       - LINEBLOCS_KEY=${LINEBLOCS_KEY}
       - LOG_LEVEL=${ARI_LOG_LEVEL}
-    networks:
-      - lineblocs_voip
+    network_mode: "host"
   recordings_mngrs:
     image: lineblocs/recordings-mngr:${VERSION}
     logging: *default-logging
@@ -208,8 +209,23 @@ services:
       - ARI_USE_PROXY=${ARI_USE_PROXY}
       - LINEBLOCS_KEY=${LINEBLOCS_KEY}
       - LOG_LEVEL=${ARI_LOG_LEVEL}
-    networks:
-      - lineblocs_voip
+    network_mode: "host"
+  media_monitor:
+    image: lineblocs/media-monitor:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-media-monitor
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${CONFIG_DB_HOST:-}
+      - DB_USER=${CONFIG_DB_USER:-}
+      - DB_PASS=${CONFIG_DB_PASSWORD:-}
+      - DB_NAME=${CONFIG_DB_NAME:-}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+      - AMI_HOST=${AMI_HOST}
+      - AMI_USER=${AMI_USER}
+      - AMI_PORT=${AMI_PORT}
+      - IP_ADDRESS=${AMI_HOST}
+    network_mode: "host"
 volumes:
   workspace:
     name: ${WORKSPACE_DOCKER_MOUNT}

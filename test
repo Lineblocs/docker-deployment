@@ -1,0 +1,16 @@
+  media_monitor:
+    image: lineblocs/media-monitor:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-media-monitor
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${CONFIG_DB_HOST:-}
+      - DB_USER=${CONFIG_DB_USERNAME:-}
+      - DB_PASS=${CONFIG_DB_PASSWORD:-}
+      - DB_NAME=${CONFIG_DB_NAME:-}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+      - AMI_HOST=${AMI_HOST}
+      - AMI_USER=${AMI_USER}
+      - AMI_PORT=${AMI_PORT}
+      - IP_ADDRESS=${AMI_HOSTED_IP_ADDRESS}
+    network_mode: "host"
