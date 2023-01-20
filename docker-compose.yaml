@@ -165,6 +165,16 @@ services:
       - RTPPROXY_IPV4=${RTPPROXY_IPV4}
       - LINEBLOCS_KEY=${LINEBLOCS_KEY}
     network_mode: "host"
+  rtpproxy:
+    image: lineblocs/rtpproxy:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-rtpproxy
+    restart: unless-stopped
+    environment:
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+      - PUBLIC_IPV4=${RTPPROXY_IPV4}
+      - PRIVATE_IPV4=127.0.0.1
+    network_mode: "host"
   asterisk:
     image: lineblocs/asterisk:${VERSION}
     logging: *default-logging
