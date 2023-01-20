@@ -210,8 +210,6 @@ services:
       - ARI_USERNAME=${ARI_USERNAME}
       - ARI_PASSWORD=${ARI_PASSWORD}
       - ARI_USE_PROXY=${ARI_USE_PROXY}
-      - ARI_URL=http://${ARI_HOST}:8088/ari
-      - ARI_WSURL=ws://${ARI_HOST}:8088/ari/events
       - LINEBLOCS_KEY=${LINEBLOCS_KEY}
       - LOG_LEVEL=${ARI_LOG_LEVEL}
     network_mode: "host"
