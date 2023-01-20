@@ -57,6 +57,8 @@ services:
     logging: *default-logging
     container_name: lineblocs-site
     restart: unless-stopped
+    volumes:
+      - ./assets:/var/www/html/public/assets
     environment:
       - DB_HOST=${CONFIG_DB_HOST:-}
       - DB_USERNAME=${CONFIG_DB_USER:-}
