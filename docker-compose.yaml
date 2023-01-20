@@ -19,7 +19,7 @@ services:
   nginx-proxy:
     image: jwilder/nginx-proxy
     ports:
-      - "8018:80"
+      - "80:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./certs:/etc/nginx/certs
