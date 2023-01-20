@@ -22,8 +22,20 @@ services:
       - "8018:80"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
     environment:
       - TRUST_DOWNSTREAM_PROXY=true
+    networks:
+      - lineblocs_internal
+  nginx-acme-companion:
+    image: nginxproxy/acme-companion
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./acme:/etc/acme.sh
+    environment:
+      - DEFAULT_EMAIL=${LETSENCRYPT_EMAIL}
     networks:
       - lineblocs_internal
   user_app:
