@@ -250,6 +250,18 @@ services:
       - IP_ADDRESS=${AMI_HOST}
       - RUNNING_K8S_METRICS_SERVER=off
     network_mode: "host"
+  carrier_monitor:
+    image: lineblocs/carrier-monitor:${VERSION}
+    logging: *default-logging
+    container_name: lineblocs-carrier-monitor
+    restart: unless-stopped
+    environment:
+      - DB_HOST=${CONFIG_DB_HOST:-}
+      - DB_USER=${CONFIG_DB_USER:-}
+      - DB_PASS=${CONFIG_DB_PASSWORD:-}
+      - DB_NAME=${CONFIG_DB_NAME:-}
+      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+    network_mode: "host"
 volumes:
   workspace:
     name: ${WORKSPACE_DOCKER_MOUNT}
