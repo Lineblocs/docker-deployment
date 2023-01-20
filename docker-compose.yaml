@@ -237,8 +237,10 @@ services:
       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
       - AMI_HOST=${AMI_HOST}
       - AMI_USER=${AMI_USER}
+      - AMI_PASS=${AMI_PASS}
       - AMI_PORT=${AMI_PORT}
       - IP_ADDRESS=${AMI_HOST}
+      - RUNNING_K8S_METRICS_SERVER=off
     network_mode: "host"
 volumes:
   workspace:
