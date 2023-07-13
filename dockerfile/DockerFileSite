@@ -1,0 +1,16 @@
+ARG VERSION
+FROM lineblocs/site:${VERSION}
+
+
+ENV DB_HOST mysqldb \
+	DB_USERNAME  root_lineblocs \
+	DB_PASSWORD 101010 \
+	DB_DATABASE lineblocs \
+	DB_PORT 3306 \
+	DB_OPENSIPS_DATABASE opensips \
+	DEPLOYMENT_DOMAIN domain.tech
+
+COPY ./dockerfile/docker-site-entrypoint.sh /var/www/html
+RUN chmod +x /var/www/html/docker-site-entrypoint.sh
+
+RUN chown -R www-data:www-data  /var/www/html/docker-site-entrypoint.sh

@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.6"
 #https://github.com/compose-spec/compose-spec/blob/master/spec.md#using-extensions-as-fragments
 x-logging: &default-logging
   options:
@@ -16,26 +16,54 @@ services:
     environment:
       - LOCAL_ROOT=${LOCAL_ROOT}
       - HACK_LOCAL_ROOT_PARENT=${HACK_LOCAL_ROOT_PARENT}
+  mysqldb:
+    image: mysql:latest
+    container_name: lineblocs-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${CONFIG_DB_ROOT_PASSWORD}
+      MYSQL_PASSWORD: ${CONFIG_DB_PASSWORD}
+      MYSQL_USER: ${CONFIG_DB_USER}
+      SERVICE_NAME: mysql
+    volumes:
+      - ./mysql/dbinitial:/docker-entrypoint-initdb.d/
+      - ./mysql/conf/mysql:/etc/mysql/
+      - ./mysql/data:/var/lib/mysql/
+    ports:
+     - ${MARIADB_PORT_HOST}:3306
+    networks:
+      - lineblocs_internal
   nginx-proxy:
     image: jwilder/nginx-proxy
+    container_name: lineblocs-nginx-proxy
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./certs:/etc/nginx/certs
+      - ./conf.d:/etc/nginx/conf.d
       - ./vhost:/etc/nginx/vhost.d
       - ./html:/usr/share/nginx/html
     environment:
       - TRUST_DOWNSTREAM_PROXY=true
+      - DHPARAM_GENERATION=false
     networks:
       - lineblocs_internal
   nginx-acme-companion:
     image: nginxproxy/acme-companion
+    volumes_from:
+      - nginx-proxy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./acme:/etc/acme.sh
+      - ./certs:/etc/nginx/certs:rw
     environment:
       - DEFAULT_EMAIL=${LETSENCRYPT_EMAIL}
+      - NGINX_PROXY_CONTAINER=lineblocs-nginx-proxy
+    depends_on:
+      nginx-proxy:
+        condition: service_completed_successfully
     networks:
       - lineblocs_internal
   user_app:
@@ -47,16 +75,23 @@ services:
       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
       - VIRTUAL_HOST=app.${DEPLOYMENT_DOMAIN}
       - VIRTUAL_PORT=8000
+      - LETSENCRYPT_HOST=app.${DEPLOYMENT_DOMAIN}
     networks:
       - lineblocs_internal
     depends_on:
       init:
         condition: service_completed_successfully
   site:
-    image: lineblocs/site:${VERSION}
+    build:
+      args:
+        VERSION: ${VERSION}
+      dockerfile: dockerfile/DockerFileSite
+    image: lineblocs/site-custom
+    # image: lineblocs/site:${VERSION}
     logging: *default-logging
     container_name: lineblocs-site
     restart: unless-stopped
+    entrypoint: /var/www/html/docker-site-entrypoint.sh
     volumes:
       - ./assets:/var/www/html/public/assets
     environment:
@@ -64,10 +99,12 @@ services:
       - DB_USERNAME=${CONFIG_DB_USER:-}
       - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
       - DB_DATABASE=${CONFIG_DB_NAME:-}
+      - DB_PORT=${CONFIG_DB_PORT:-}
       - DB_OPENSIPS_DATABASE=${CONFIG_DB_OPENSIPS_DATABASE:-}
       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
       - VIRTUAL_HOST=${DEPLOYMENT_DOMAIN}
       - VIRTUAL_PORT=8080
+      - LETSENCRYPT_HOST=${DEPLOYMENT_DOMAIN}
     networks:
       - lineblocs_internal
   ts_bindings:
@@ -93,6 +130,7 @@ services:
       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
       - VIRTUAL_HOST=editor.${DEPLOYMENT_DOMAIN}
       - VIRTUAL_PORT=3000
+      - LETSENCRYPT_HOST=editor.${DEPLOYMENT_DOMAIN}
     networks:
       - lineblocs_internal
     depends_on:
@@ -108,6 +146,7 @@ services:
       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
       - VIRTUAL_HOST=call-route-editor.${DEPLOYMENT_DOMAIN}
       - VIRTUAL_PORT=8005
+      - LETSENCRYPT_HOST=call-route-editor.${DEPLOYMENT_DOMAIN}
     networks:
       - lineblocs_internal
     depends_on:
@@ -123,6 +162,7 @@ services:
       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
       - VIRTUAL_HOST=internals.${DEPLOYMENT_DOMAIN}
       - VIRTUAL_PORT=8010
+      - LETSENCRYPT_HOST=internals.${DEPLOYMENT_DOMAIN}
       - HTTP_PORT=8010
       - HTTPS_PORT=7443
       - DB_HOST=${CONFIG_DB_HOST:-}
@@ -133,6 +173,7 @@ services:
       - USE_DOTENV=off
       - USE_TLS=off
       - USE_LIMIT_MIDDLEWARE=off
+      - USE_AUTH_MIDDLEWARE=off
     networks:
       - lineblocs_internal
   phpmyadmin:
@@ -144,8 +185,9 @@ services:
       - PMA_HOST=${CONFIG_DB_HOST:-}
       - PMA_PORT=${CONFIG_DB_PORT:-}
       - MYSQL_ROOT_PASSWORD=${CONFIG_DB_ROOT_PASSWORD:-}
-      - VIRTUAL_HOST=phpmyadmin.${DEPLOYMENT_DOMAIN}
-      - VIRTUAL_PORT=8015
+      - VIRTUAL_HOST=dbeditor.${DEPLOYMENT_DOMAIN}
+      - VIRTUAL_PORT=80
+      - LETSENCRYPT_HOST=dbeditor.${DEPLOYMENT_DOMAIN}
     networks:
       - lineblocs_internal
 
@@ -176,24 +218,24 @@ services:
       - PRIVATE_IPV4=127.0.0.1
     network_mode: "host"
   asterisk:
-    image: lineblocs/asterisk:${VERSION}
-    logging: *default-logging
-    container_name: lineblocs-asterisk
-    restart: unless-stopped
-    environment:
-      - DB_HOST=${CONFIG_DB_HOST:-}
-      - DB_USERNAME=${CONFIG_DB_USERNAME:-}
-      - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
-      - DB_NAME=${CONFIG_DB_NAME:-}
-      - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
-      - AMI_USER=${AMI_USER}
-      - AMI_PASS=${AMI_PASS}
-      - AMI_PORT=${AMI_PORT}
-      - AMI_HOST=${AMI_HOST}
-      - ARI_USERNAME=${ARI_USERNAME}
-      - ARI_PASSWORD=${ARI_PASSWORD}
-      - LINEBLOCS_KEY=${LINEBLOCS_KEY}
-    network_mode: "host"
+     image: lineblocs/asterisk:${VERSION}
+     logging: *default-logging
+     container_name: lineblocs-asterisk
+     restart: unless-stopped
+     environment:
+       - DB_HOST=${CONFIG_DB_HOST:-}
+       - DB_USERNAME=${CONFIG_DB_USERNAME:-}
+       - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
+       - DB_NAME=${CONFIG_DB_NAME:-}
+       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
+       - AMI_USER=${AMI_USER}
+       - AMI_PASS=${AMI_PASS}
+       - AMI_PORT=${AMI_PORT}
+       - AMI_HOST=${AMI_HOST}
+       - ARI_USERNAME=${ARI_USERNAME}
+       - ARI_PASSWORD=${ARI_PASSWORD}
+       - LINEBLOCS_KEY=${LINEBLOCS_KEY}
+     network_mode: "host"
   ari_apps:
     image: lineblocs/ari-apps:${VERSION}
     logging: *default-logging
@@ -241,6 +283,7 @@ services:
       - DB_HOST=${CONFIG_DB_HOST:-}
       - DB_USER=${CONFIG_DB_USER:-}
       - DB_PASS=${CONFIG_DB_PASSWORD:-}
+      - DB_PASSWORD=${CONFIG_DB_PASSWORD:-}
       - DB_NAME=${CONFIG_DB_NAME:-}
       - DEPLOYMENT_DOMAIN=${DEPLOYMENT_DOMAIN}
       - AMI_HOST=${AMI_HOST}
@@ -275,4 +318,10 @@ volumes:
 networks:
   lineblocs_public:
   lineblocs_internal:
+  # lineblocs_db:
+  #   driver: bridge
+  #   ipam:
+  #    config:
+  #      - subnet: 172.20.0.0/16
+  #        gateway: 172.20.0.1
   lineblocs_voip:
