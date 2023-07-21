@@ -82,18 +82,13 @@ services:
       init:
         condition: service_completed_successfully
   site:
-    build:
-      args:
-        VERSION: ${VERSION}
-      dockerfile: dockerfile/DockerFileSite
-    image: lineblocs/site-custom
-    # image: lineblocs/site:${VERSION}
+    image: lineblocs/site:${VERSION}
     logging: *default-logging
     container_name: lineblocs-site
     restart: unless-stopped
-    entrypoint: /var/www/html/docker-site-entrypoint.sh
     volumes:
-      - ./assets:/var/www/html/public/assets
+      - ./lineblocs/site/assets:/var/www/html/public/assets
+#      - ./lineblocs/site/.env:/var/www/html/.env
     environment:
       - DB_HOST=${CONFIG_DB_HOST:-}
       - DB_USERNAME=${CONFIG_DB_USER:-}
