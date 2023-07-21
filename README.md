@@ -20,7 +20,7 @@ $ cp .env.example .env
 ```
 Change variable in .env file.  Fill LETSENCRYPT_EMAIL, DEPLOYMENT_DOMAIN, CONFIG_DB_HOST, etc
 
-### Step 4 - Choose Database and synchronization configuration
+### Step 3 - Choose Database and synchronization configuration
 It is the condition will appear :
 - Using database outside container 
 While choose this condition, open docker-compose.yaml file. Comment block of `mysqldb` container with add `#` on left.
@@ -52,7 +52,7 @@ To get most update DB, please visit this link https://github.com/Lineblocs/helm-
 
 `data` contains data of mysql application. 
 
-### Step 3 - Re-check DNS configuration
+### Step 4 - Re-check DNS configuration
 
 Make sure you have dns configuration mapping to your ip server. List of domain :
 - {{DEPLOYMENT_DOMAIN}}
@@ -62,7 +62,7 @@ Make sure you have dns configuration mapping to your ip server. List of domain :
 - internals.{{DEPLOYMENT_DOMAIN}}
 - dbeditor.{{DEPLOYMENT_DOMAIN}}
 
-### Step 4 - Running docker container
+### Step 5 - Running docker container
 
 ```shell
 $ docker-compose up -d
