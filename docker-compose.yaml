@@ -25,10 +25,18 @@ services:
       MYSQL_PASSWORD: ${CONFIG_DB_PASSWORD}
       MYSQL_USER: ${CONFIG_DB_USER}
       SERVICE_NAME: mysql
+    profiles:
+      - include_mysql
+    entrypoint:
+      sh -c "
+        echo 'CREATE DATABASE IF NOT EXISTS ${CONFIG_DB_NAME}; USE ${CONFIG_DB_NAME}; GRANT ALL  ON '\\`'${CONFIG_DB_NAME}'\\`'.* TO '\\''${CONFIG_DB_USER}'\\''@'\\''%'\\''; ' > /docker-entrypoint-initdb.d/init.sql;
+        echo 'CREATE DATABASE IF NOT EXISTS ${CONFIG_DB_OPENSIPS_DATABASE}; USE ${CONFIG_DB_OPENSIPS_DATABASE}; GRANT ALL  ON '\\`'${CONFIG_DB_OPENSIPS_DATABASE}'\\`'.* TO '\\''${CONFIG_DB_USER}'\\''@'\\''%'\\''; ' >> /docker-entrypoint-initdb.d/init.sql;
+        /usr/local/bin/docker-entrypoint.sh  --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+      "
     volumes:
       - ./mysql/dbinitial:/docker-entrypoint-initdb.d/
-      - ./mysql/conf/mysql:/etc/mysql/
-      - ./mysql/data:/var/lib/mysql/
+#      - ./mysql/conf/mysql:/etc/mysql/
+#      - ./mysql/data:/var/lib/mysql/
     ports:
      - ${MARIADB_PORT_HOST}:3306
     networks:
