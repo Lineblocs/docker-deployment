@@ -23,10 +23,11 @@ Change variable in .env file.  Fill LETSENCRYPT_EMAIL, DEPLOYMENT_DOMAIN, CONFIG
 ### Step 3 - Choose Database and synchronization configuration
 It is the condition will appear :
 - Using database outside container 
-While choose this condition, open docker-compose.yaml file. Comment block of `mysqldb` container with add `#` on left.
+Default condition is database on eksternal container. On this condition, just make sure to have correct value on .env at CONFIG_DB_ROOT_PASSWORD, CONFIG_DB_PASSWORD, CONFIG_DB_USER, CONFIG_DB_NAME, CONFIG_DB_OPENSIPS_DATABASE
 
 - Using database with container in this docker-compose.yaml file
-This docker-compose.yaml will be create 1 container as mysql database with name `mysqldb`. That container mounting this directory on host server.
+To using this condition, add ` --profile include_mysql` after `docker-compose`. So command become `docker-compose --profile include_mysql up -d`, `docker-compose --profile include_mysql stop`, etc.  
+This docker-compose.yaml will be create 1 container as mysql database with name `mysqldb` and all others container. That mysql container mounting this directory on host server.
 ````
 mysql
 ├── conf
@@ -34,19 +35,7 @@ mysql
 └── dbinitial
 ````
 `conf` contains all file of mysql configuration.
-`dbinitial` contains .sql file that will be running while `mysqldb` container created. Please open existing .sql file and synchronization this line below.
-````
-CREATE Database IF NOT EXISTS lineblocs;
-USE lineblocs;
-
-GRANT ALL ON `lineblocs`.* TO 'root_lineblocs'@'%';
-````
-
-````
-CREATE Database IF NOT EXISTS opensips;
-USE opensips;
-GRANT ALL ON `opensips`.* TO 'root_lineblocs'@'%';
-````
+`dbinitial` contains .sql file that will be running while `mysqldb` container created. 
 
 To get most update DB, please visit this link https://github.com/Lineblocs/helm-chart/tree/main/database
 
@@ -67,6 +56,11 @@ Make sure you have dns configuration mapping to your ip server. List of domain :
 ```shell
 $ docker-compose up -d
 ```
+or 
+```shell
+$ docker-compose  --profile include_mysql up -d
+```
+
 Make sure using docker compose version 2.
 
 
