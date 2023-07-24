@@ -22,10 +22,12 @@ Change variable in .env file.  Fill LETSENCRYPT_EMAIL, DEPLOYMENT_DOMAIN, CONFIG
 
 ### Step 3 - Choose Database and synchronization configuration
 It is the condition will appear :
-- Using database outside container 
+- Using database outside container.
+   
 Default condition is database on eksternal container. On this condition, just make sure to have correct value on .env at CONFIG_DB_ROOT_PASSWORD, CONFIG_DB_PASSWORD, CONFIG_DB_USER, CONFIG_DB_NAME, CONFIG_DB_OPENSIPS_DATABASE
 
-- Using database with container in this docker-compose.yaml file
+- Using database with container in this docker-compose.yaml file.
+  
 To using this condition, add ` --profile include_mysql` after `docker-compose`. So command become `docker-compose --profile include_mysql up -d`, `docker-compose --profile include_mysql stop`, etc.  
 This docker-compose.yaml will be create 1 container as mysql database with name `mysqldb` and all others container. That mysql container mounting this directory on host server.
 ````
